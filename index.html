@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Impulse Saver Basket</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; }
+    h1 { color: #333; }
+    .basket { display: flex; flex-wrap: wrap; gap: 20px; }
+    .item { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1); width: 250px; }
+    .item img { width: 100%; border-radius: 4px; }
+    .item-title { font-size: 16px; font-weight: bold; margin: 10px 0; }
+    .item-price { color: #007600; }
+    .lists { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Your Impulse Saver Basket 🧺</h1>
+  <div class="basket" id="basket"></div>
+
+  <script>
+    // Parse query parameters
+    const params = new URLSearchParams(window.location.search);
+    const title = params.get('title');
+    const price = params.get('price');
+    const image = params.get('image');
+    const url = params.get('url');
+
+    // Retrieve saved basket from localStorage
+    let basket = JSON.parse(localStorage.getItem('basket')) || [];
+
+    if (title && price && image && url) {
+      // Add new item
+      basket.push({ title, price, image, url, added: new Date().toISOString() });
+      localStorage.setItem('basket', JSON.stringify(basket));
+    }
+
+    const basketContainer = document.getElementById('basket');
+
+    basket.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+        <img src="${item.image}" alt="${item.title}" />
+        <div class="item-title">${item.title}</div>
+        <div class="item-price">${item.price}</div>
+        <a href="${item.url}" target="_blank">View Product</a>
+      `;
+      basketContainer.appendChild(div);
+    });
+  </script>
+</body>
+</html>
