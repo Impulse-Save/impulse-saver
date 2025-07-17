@@ -3,52 +3,155 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Impulse Saver Basket</title>
+  <title>Impulse Saver</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; }
-    h1 { color: #333; }
-    .basket { display: flex; flex-wrap: wrap; gap: 20px; }
-    .item { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1); width: 250px; }
-    .item img { width: 100%; border-radius: 4px; }
-    .item-title { font-size: 16px; font-weight: bold; margin: 10px 0; }
-    .item-price { color: #007600; }
-    .lists { margin-top: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+    .item {
+      display: flex;
+      align-items: center;
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      margin-bottom: 10px;
+    }
+    .item img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      margin-right: 15px;
+    }
+    .item-info {
+      flex-grow: 1;
+    }
+    .actions button {
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>Your Impulse Saver Basket 🧺</h1>
-  <div class="basket" id="basket"></div>
+  <h1>🧺 Impulse Saver Basket</h1>
+
+  <div class="section" id="stillWant">
+    <h2>✅ Still Want</h2>
+  </div>
+
+  <div class="section" id="favourites">
+    <h2>⭐ Favourites</h2>
+  </div>
+
+  <div class="section" id="secondThoughts">
+    <h2>🤔 On Second Thoughts...</h2>
+  </div>
 
   <script>
-    // Parse query parameters
-    const params = new URLSearchParams(window.location.search);
-    const title = params.get('title');
-    const price = params.get('price');
-    const image = params.get('image');
-    const url = params.get('url');
-
-    // Retrieve saved basket from localStorage
-    let basket = JSON.parse(localStorage.getItem('basket')) || [];
-
-    if (title && price && image && url) {
-      // Add new item
-      basket.push({ title, price, image, url, added: new Date().toISOString() });
-      localStorage.setItem('basket', JSON.stringify(basket));
+    function getSection(name) {
+      return document.getElementById(name);
     }
 
-    const basketContainer = document.getElementById('basket');
-
-    basket.forEach(item => {
+    function createItemElement(item, key) {
       const div = document.createElement('div');
       div.className = 'item';
-      div.innerHTML = `
-        <img src="${item.image}" alt="${item.title}" />
-        <div class="item-title">${item.title}</div>
-        <div class="item-price">${item.price}</div>
-        <a href="${item.url}" target="_blank">View Product</a>
-      `;
-      basketContainer.appendChild(div);
-    });
+
+      const img = document.createElement('img');
+      img.src = item.image || '';
+
+      const info = document.createElement('div');
+      info.className = 'item-info';
+      info.innerHTML = `<strong>${item.title || 'No Title'}</strong><br>${item.price || ''}<br><a href="${item.url}" target="_blank">View on Amazon</a>`;
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const favBtn = document.createElement('button');
+      favBtn.textContent = '⭐';
+      favBtn.onclick = () => moveItem(key, 'favourites');
+
+      const secondThoughtsBtn = document.createElement('button');
+      secondThoughtsBtn.textContent = '🤔';
+      secondThoughtsBtn.onclick = () => moveItem(key, 'secondThoughts');
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '🗑️';
+      deleteBtn.onclick = () => deleteItem(key);
+
+      actions.append(favBtn, secondThoughtsBtn, deleteBtn);
+
+      div.append(img, info, actions);
+      return div;
+    }
+
+    function renderAll() {
+      ['stillWant', 'favourites', 'secondThoughts'].forEach(section => {
+        const el = getSection(section);
+        el.innerHTML = `<h2>${el.querySelector('h2').innerText}</h2>`;
+      });
+
+      const basket = JSON.parse(localStorage.getItem('impulseBasket') || '{}');
+      const now = Date.now();
+
+      for (const [key, item] of Object.entries(basket)) {
+        // Expire items in second thoughts after 21 days
+        if (item.section === 'secondThoughts' && now - item.added > 21 * 24 * 60 * 60 * 1000) {
+          delete basket[key];
+          continue;
+        }
+        const container = getSection(item.section || 'stillWant');
+        const elem = createItemElement(item, key);
+        container.appendChild(elem);
+      }
+
+      localStorage.setItem('impulseBasket', JSON.stringify(basket));
+    }
+
+    function moveItem(key, newSection) {
+      const basket = JSON.parse(localStorage.getItem('impulseBasket') || '{}');
+      if (basket[key]) {
+        basket[key].section = newSection;
+        basket[key].added = Date.now();
+        localStorage.setItem('impulseBasket', JSON.stringify(basket));
+        renderAll();
+      }
+    }
+
+    function deleteItem(key) {
+      const basket = JSON.parse(localStorage.getItem('impulseBasket') || '{}');
+      delete basket[key];
+      localStorage.setItem('impulseBasket', JSON.stringify(basket));
+      renderAll();
+    }
+
+    function addFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('title')) return;
+
+      const item = {
+        title: params.get('title'),
+        price: params.get('price'),
+        image: params.get('image'),
+        url: params.get('url'),
+        section: 'stillWant',
+        added: Date.now()
+      };
+
+      const basket = JSON.parse(localStorage.getItem('impulseBasket') || '{}');
+      const key = `item-${Date.now()}`;
+      basket[key] = item;
+      localStorage.setItem('impulseBasket', JSON.stringify(basket));
+    }
+
+    addFromQuery();
+    renderAll();
   </script>
 </body>
 </html>
