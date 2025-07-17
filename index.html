@@ -135,6 +135,7 @@
 
       let totalValue = 0;
       let totalSavings = 0;
+      let actualSavings = 0;
 
       for (const [key, item] of Object.entries(basket)) {
         if (item.section === 'secondThoughts' && now - item.added > 21 * 24 * 60 * 60 * 1000) {
@@ -143,9 +144,14 @@
         }
 
         const price = extractPriceValue(item.price);
-        if ((item.section === 'stillWant' || item.section === 'favourites' || item.section === 'savingsComplete') && price) {
+
+        if ((item.section === 'stillWant' || item.section === 'favourites') && price) {
           totalValue += price;
           totalSavings += price * 0.1;
+        }
+
+        if (item.section === 'savingsComplete' && price) {
+          actualSavings += price * 0.1;
         }
 
         const container = getSection(item.section || 'stillWant');
@@ -155,7 +161,8 @@
 
       document.getElementById('totals').innerHTML = `
         <strong>Total Value:</strong> $${totalValue.toFixed(2)}<br>
-        <strong>Suggested Savings (10%):</strong> $${totalSavings.toFixed(2)}
+        <strong>Suggested Savings (10%):</strong> $${totalSavings.toFixed(2)}<br>
+        <strong>💰 Actual Savings Made:</strong> $${actualSavings.toFixed(2)}
       `;
 
       localStorage.setItem('impulseBasket', JSON.stringify(basket));
