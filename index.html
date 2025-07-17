@@ -37,6 +37,11 @@
     .actions button {
       margin-right: 10px;
     }
+    .save-suggestion {
+      font-size: 0.9em;
+      color: #2e7d32;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -54,9 +59,19 @@
     <h2>🤔 On Second Thoughts...</h2>
   </div>
 
+  <div class="section" id="savingsComplete">
+    <h2>🏦 Savings Completed</h2>
+  </div>
+
   <script>
     function getSection(name) {
       return document.getElementById(name);
+    }
+
+    function extractPriceValue(priceStr) {
+      if (!priceStr) return null;
+      const match = priceStr.replace(/,/g, '').match(/[\d.]+/);
+      return match ? parseFloat(match[0]) : null;
     }
 
     function createItemElement(item, key) {
@@ -68,7 +83,12 @@
 
       const info = document.createElement('div');
       info.className = 'item-info';
-      info.innerHTML = `<strong>${item.title || 'No Title'}</strong><br>${item.price || ''}<br><a href="${item.url}" target="_blank">View on Amazon</a>`;
+      const priceValue = extractPriceValue(item.price);
+      const saveMsg = priceValue
+        ? `<div class="save-suggestion">💸 Move $${(priceValue * 0.1).toFixed(2)} to savings</div>`
+        : '';
+
+      info.innerHTML = `<strong>${item.title || 'No Title'}</strong><br>${item.price || ''}<br><a href="${item.url}" target="_blank">View on Amazon</a>${saveMsg}`;
 
       const actions = document.createElement('div');
       actions.className = 'actions';
@@ -81,18 +101,22 @@
       secondThoughtsBtn.textContent = '🤔';
       secondThoughtsBtn.onclick = () => moveItem(key, 'secondThoughts');
 
+      const saveDoneBtn = document.createElement('button');
+      saveDoneBtn.textContent = '🏦';
+      saveDoneBtn.onclick = () => moveItem(key, 'savingsComplete');
+
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '🗑️';
       deleteBtn.onclick = () => deleteItem(key);
 
-      actions.append(favBtn, secondThoughtsBtn, deleteBtn);
+      actions.append(favBtn, secondThoughtsBtn, saveDoneBtn, deleteBtn);
 
       div.append(img, info, actions);
       return div;
     }
 
     function renderAll() {
-      ['stillWant', 'favourites', 'secondThoughts'].forEach(section => {
+      ['stillWant', 'favourites', 'secondThoughts', 'savingsComplete'].forEach(section => {
         const el = getSection(section);
         el.innerHTML = `<h2>${el.querySelector('h2').innerText}</h2>`;
       });
@@ -101,7 +125,6 @@
       const now = Date.now();
 
       for (const [key, item] of Object.entries(basket)) {
-        // Expire items in second thoughts after 21 days
         if (item.section === 'secondThoughts' && now - item.added > 21 * 24 * 60 * 60 * 1000) {
           delete basket[key];
           continue;
