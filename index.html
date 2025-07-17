@@ -42,10 +42,19 @@
       color: #2e7d32;
       margin-top: 4px;
     }
+    .totals {
+      font-size: 1em;
+      background: #e0f7fa;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
   <h1>🧺 Impulse Saver Basket</h1>
+
+  <div class="totals" id="totals"></div>
 
   <div class="section" id="stillWant">
     <h2>✅ Still Want</h2>
@@ -70,7 +79,7 @@
 
     function extractPriceValue(priceStr) {
       if (!priceStr) return null;
-      const match = priceStr.replace(/,/g, '').match(/[\d.]+/);
+      const match = priceStr.replace(/,/g, '').match(/\d+(\.\d+)?/);
       return match ? parseFloat(match[0]) : null;
     }
 
@@ -124,15 +133,30 @@
       const basket = JSON.parse(localStorage.getItem('impulseBasket') || '{}');
       const now = Date.now();
 
+      let totalValue = 0;
+      let totalSavings = 0;
+
       for (const [key, item] of Object.entries(basket)) {
         if (item.section === 'secondThoughts' && now - item.added > 21 * 24 * 60 * 60 * 1000) {
           delete basket[key];
           continue;
         }
+
+        const price = extractPriceValue(item.price);
+        if ((item.section === 'stillWant' || item.section === 'favourites' || item.section === 'savingsComplete') && price) {
+          totalValue += price;
+          totalSavings += price * 0.1;
+        }
+
         const container = getSection(item.section || 'stillWant');
         const elem = createItemElement(item, key);
         container.appendChild(elem);
       }
+
+      document.getElementById('totals').innerHTML = `
+        <strong>Total Value:</strong> $${totalValue.toFixed(2)}<br>
+        <strong>Suggested Savings (10%):</strong> $${totalSavings.toFixed(2)}
+      `;
 
       localStorage.setItem('impulseBasket', JSON.stringify(basket));
     }
